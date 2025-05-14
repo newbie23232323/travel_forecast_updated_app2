@@ -95,25 +95,6 @@ st.title("Travel Expense Forecasting Tool")
 st.sidebar.header("Inflation Presets")
 
 # ---------------------------
-# Natural Language Query Input
-# ---------------------------
-st.subheader("Try a Natural Language Query")
-query = st.text_input("Describe your inflation changes (e.g., 'Raise airfare by 12% and lodging by 8%')")
-if st.button("Apply Query") and query:
-    adjustments = parse_query(query)
-    for key in adjustments:
-        st.session_state[key] = adjustments[key]
-    st.success("Applied inflation changes from query.")
-
-# ---------------------------
-# Violation Detection Output
-# ---------------------------
-st.subheader("Expense Violations Report")
-df = load_data()
-violations_df = detect_violations(df)
-st.dataframe(violations_df)
-
-# ---------------------------
 # Train Linear Regression Model
 # ---------------------------
 def train_model(df):
@@ -284,3 +265,22 @@ st.subheader("Forecast Visualization")
 plot_forecast(actual, forecast)
 
 st.caption("Inflation adjustments for 2026 are configurable in the sidebar. Use the reset button or select a preset to get started.")
+
+# ---------------------------
+# Natural Language Query Input
+# ---------------------------
+st.subheader("Try a Natural Language Query")
+query = st.text_input("Describe your inflation changes (e.g., 'Raise airfare by 12% and lodging by 8%')")
+if st.button("Apply Query") and query:
+    adjustments = parse_query(query)
+    for key in adjustments:
+        st.session_state[key] = adjustments[key]
+    st.success("Applied inflation changes from query.")
+
+# ---------------------------
+# Violation Detection Output
+# ---------------------------
+st.subheader("Expense Violations Report")
+df = load_data()
+violations_df = detect_violations(df)
+st.dataframe(violations_df)
