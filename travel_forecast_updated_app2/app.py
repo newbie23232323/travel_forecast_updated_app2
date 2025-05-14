@@ -85,15 +85,6 @@ def parse_query(text):
         key = category.replace(" ", "") if category != "ground transport" else "ground"
         adjustments[key] = int(percent)
     return adjustments
-
-# ---------------------------
-# Streamlit App UI
-# ---------------------------
-
-st.title("Travel Expense Forecasting Tool")
-
-st.sidebar.header("Inflation Presets")
-
 # ---------------------------
 # Train Linear Regression Model
 # ---------------------------
