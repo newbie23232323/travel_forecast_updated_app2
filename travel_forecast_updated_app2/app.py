@@ -9,45 +9,6 @@ from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
 import os
 import glob
-
-# ---------------------------
-# Simulate or Load Data
-# ---------------------------
-@st.cache_data
-def load_data():
-    np.random.seed(42)
-    employees = [f"Employee {i+1}" for i in range(50)]
-    quarters = pd.date_range(start='2022-01-01', end='2024-12-31', freq='QS')
-    categories = ['Airfare', 'Lodging', 'Meals', 'Snacks', 'Ground Transport']
-    expense_caps = {
-        'Airfare': (300, 800),
-        'Lodging': (150, 300),
-        'Meals': (20, 30),
-        'Snacks': (10, 30),
-        'Ground Transport': (50, 150)
-    }
-
-    records = []
-    for name in employees:
-        for date in quarters:
-            records.extend([
-                {'Employee': name, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
-                 'Expense': round(np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2), 2)}
-                for cat in categories
-            ])
-    return pd.DataFrame(records)
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-import json
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-import matplotlib.pyplot as plt
-import os
-import glob
 import re
 
 # ---------------------------
@@ -78,6 +39,7 @@ def load_data():
             ])
 
     # Add 5 users that intentionally violate meal/snack limits
+    
     violators = [f"Violation_User_{i+1}" for i in range(5)]
     for name in violators:
         for date in quarters:
