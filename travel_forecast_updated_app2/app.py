@@ -131,7 +131,6 @@ def parse_query(text):
 st.title("Travel Expense Forecasting Tool")
 
 st.sidebar.header("Inflation Presets")
-... (existing sidebar controls)
 
 # ---------------------------
 # Natural Language Query Input
