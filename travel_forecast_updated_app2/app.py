@@ -37,6 +37,121 @@ def load_data():
             ])
     return pd.DataFrame(records)
 
+import streamlit as st
+import pandas as pd
+import numpy as np
+import json
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import matplotlib.pyplot as plt
+import os
+import glob
+import re
+
+# ---------------------------
+# Simulate or Load Data
+# ---------------------------
+@st.cache_data
+
+def load_data():
+    np.random.seed(42)
+    employees = [f"Employee {i+1}" for i in range(50)]
+    quarters = pd.date_range(start='2022-01-01', end='2024-12-31', freq='QS')
+    categories = ['Airfare', 'Lodging', 'Meals', 'Snacks', 'Ground Transport']
+    expense_caps = {
+        'Airfare': (300, 800),
+        'Lodging': (150, 300),
+        'Meals': (20, 30),
+        'Snacks': (10, 30),
+        'Ground Transport': (50, 150)
+    }
+
+    records = []
+    for name in employees:
+        for date in quarters:
+            records.extend([
+                {'Employee': name, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
+                 'Expense': round(np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2), 2)}
+                for cat in categories
+            ])
+
+    # Add 5 users that intentionally violate meal/snack limits
+    violators = [f"Violation_User_{i+1}" for i in range(5)]
+    for name in violators:
+        for date in quarters:
+            for cat in categories:
+                if cat in ['Meals', 'Snacks']:
+                    over_limit = expense_caps[cat][1] + np.random.uniform(20, 50)
+                else:
+                    over_limit = np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2)
+                records.append({
+                    'Employee': name,
+                    'Date': date,
+                    'Category': cat,
+                    'Location': 'Washington DC',
+                    'Expense': round(over_limit, 2)
+                })
+
+    return pd.DataFrame(records)
+
+# ---------------------------
+# Detect Violations
+# ---------------------------
+def detect_violations(df):
+    max_limits = {
+        'Meals': 30,
+        'Snacks': 30
+    }
+    violations = df[df['Category'].isin(max_limits.keys()) & (df['Expense'] > df['Category'].map(max_limits))]
+    return violations[['Employee', 'Date', 'Category', 'Expense']]
+
+# ---------------------------
+# Parse Natural Language Query
+# ---------------------------
+def parse_query(text):
+    adjustments = {
+        "airfare": 0,
+        "lodging": 0,
+        "meals": 0,
+        "snacks": 0,
+        "ground": 0
+    }
+    matches = re.findall(r'(airfare|lodging|meals|snacks|ground transport)[^\d]*(\d+)%?', text.lower())
+    for category, percent in matches:
+        key = category.replace(" ", "") if category != "ground transport" else "ground"
+        adjustments[key] = int(percent)
+    return adjustments
+
+# ---------------------------
+# Streamlit App UI
+# ---------------------------
+
+st.title("Travel Expense Forecasting Tool")
+
+st.sidebar.header("Inflation Presets")
+... (existing sidebar controls)
+
+# ---------------------------
+# Natural Language Query Input
+# ---------------------------
+st.subheader("Try a Natural Language Query")
+query = st.text_input("Describe your inflation changes (e.g., 'Raise airfare by 12% and lodging by 8%')")
+if st.button("Apply Query") and query:
+    adjustments = parse_query(query)
+    for key in adjustments:
+        st.session_state[key] = adjustments[key]
+    st.success("Applied inflation changes from query.")
+
+# ---------------------------
+# Violation Detection Output
+# ---------------------------
+st.subheader("Expense Violations Report")
+df = load_data()
+violations_df = detect_violations(df)
+st.dataframe(violations_df)
+
 # ---------------------------
 # Train Linear Regression Model
 # ---------------------------
