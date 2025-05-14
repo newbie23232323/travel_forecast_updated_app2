@@ -196,7 +196,7 @@ def list_presets():
 # Streamlit App UI
 # ---------------------------
 
-st.title("School Travel Expense Forecasting Tool")
+st.title("Travel Expense Forecasting Tool")
 
 st.sidebar.header("Inflation Presets")
 preset = st.sidebar.selectbox("Choose a scenario", ["Custom", "Baseline (0%)", "Conservative (10%)", "High Cost (20%)"])
