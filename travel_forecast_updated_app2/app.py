@@ -14,8 +14,7 @@ import re
 # ---------------------------
 # Simulate or Load Data
 # ---------------------------
-@st.cache_data
-
+@st.cache_data()
 def load_data():
     np.random.seed(42)
     employees = [f"Employee {i+1}" for i in range(50)]
@@ -39,7 +38,6 @@ def load_data():
             ])
 
     # Add 5 users that intentionally violate meal/snack limits
-    
     violators = [f"Violation_User_{i+1}" for i in range(5)]
     for name in violators:
         for date in quarters:
@@ -85,6 +83,7 @@ def parse_query(text):
         key = category.replace(" ", "") if category != "ground transport" else "ground"
         adjustments[key] = int(percent)
     return adjustments
+
 # ---------------------------
 # Train Linear Regression Model
 # ---------------------------
@@ -257,6 +256,9 @@ plot_forecast(actual, forecast)
 
 st.caption("Inflation adjustments for 2026 are configurable in the sidebar. Use the reset button or select a preset to get started.")
 
+# Run expense trend analysis
+generate_expense_summary(df)
+
 # ---------------------------
 # Natural Language Query Input
 # ---------------------------
@@ -269,9 +271,37 @@ if st.button("Apply Query") and query:
     st.success("Applied inflation changes from query.")
 
 # ---------------------------
+# Enhanced Summary Reporting
+# ---------------------------
+def generate_expense_summary(df):
+    df['Quarter'] = df['Date'].dt.to_period('Q')
+    pivot = df.pivot_table(index='Quarter', columns='Category', values='Expense', aggfunc='mean').fillna(0)
+    st.subheader("Visual Expense Trend Analysis")
+    st.line_chart(pivot)
+
+    st.subheader("Detected Anomalies (>10%)")
+    anomalies = []
+    for col in pivot.columns:
+        diffs = pivot[col].pct_change()
+        for i, pct in enumerate(diffs):
+            if pct is not None and abs(pct) > 0.10:
+                anomalies.append(f"{col} had a {'rise' if pct > 0 else 'drop'} of {pct:.1%} in {pivot.index[i]}")
+    for alert in anomalies:
+        st.warning(alert)
+
+    st.subheader("Download Trend Summary Report")
+    summary_csv = pivot.reset_index().to_csv(index=False).encode('utf-8')
+    st.download_button("Download CSV", summary_csv, "trend_summary_report.csv", "text/csv")
+
+# ---------------------------
 # Violation Detection Output
 # ---------------------------
 st.subheader("Expense Violations Report")
 df = load_data()
 violations_df = detect_violations(df)
 st.dataframe(violations_df)
+
+# Export violation results
+violation_csv = violations_df.to_csv(index=False).encode('utf-8')
+st.download_button("Download Violations CSV", violation_csv, "violation_report.csv", "text/csv")
+
