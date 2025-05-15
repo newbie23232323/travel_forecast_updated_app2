@@ -60,7 +60,6 @@ def load_data():
                 })
 
     return pd.DataFrame(records)
-
 # ---------------------------
 # Detect Violations
 # ---------------------------
