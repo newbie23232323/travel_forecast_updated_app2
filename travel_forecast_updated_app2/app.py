@@ -43,7 +43,6 @@ def load_data():
             ])
 
     # Add 5 users that intentionally violate meal & snack limits
-    
     violators = [f"Violation_User_{i+1}" for i in range(5)]
     for name in violators:
         emp_number = np.random.randint(1000000, 9999999)
