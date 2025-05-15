@@ -312,3 +312,14 @@ st.dataframe(violations_df)
 violation_csv = violations_df.to_csv(index=False).encode('utf-8')
 st.download_button("Download Violations CSV", violation_csv, "violation_report.csv", "text/csv")
 
+# ---------------------------
+# Download Full Dataset
+# ---------------------------
+st.subheader("Download Complete Expense Dataset")
+full_csv = df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="Download Full Dataset CSV",
+    data=full_csv,
+    file_name="complete_expense_dataset.csv",
+    mime="text/csv"
+)
