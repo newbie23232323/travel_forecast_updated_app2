@@ -261,8 +261,7 @@ plot_forecast(actual, forecast)
 
 st.caption("Inflation adjustments for 2026 are configurable in the sidebar. Use the reset button or select a preset to get started.")
 
-# Run expense trend analysis
-generate_expense_summary(df)
+
 
 # ---------------------------
 # Natural Language Query Input
@@ -277,6 +276,8 @@ if st.button("Apply Query") and query:
 
 # ---------------------------
 # Enhanced Summary Reporting
+# ---------------------------
+generate_expense_summary(df)
 # ---------------------------
 def generate_expense_summary(df):
     df['Quarter'] = df['Date'].dt.to_period('Q')
@@ -309,3 +310,4 @@ st.dataframe(violations_df)
 # Export violation results
 violation_csv = violations_df.to_csv(index=False).encode('utf-8')
 st.download_button("Download Violations CSV", violation_csv, "violation_report.csv", "text/csv")
+
