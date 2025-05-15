@@ -274,11 +274,6 @@ if st.button("Apply Query") and query:
         st.session_state[key] = adjustments[key]
     st.success("Applied inflation changes from query.")
 
-# ---------------------------
-# Enhanced Summary Reporting
-# ---------------------------
-generate_expense_summary(df)
-# ---------------------------
 def generate_expense_summary(df):
     df['Quarter'] = df['Date'].dt.to_period('Q')
     pivot = df.pivot_table(index='Quarter', columns='Category', values='Expense', aggfunc='mean').fillna(0)
