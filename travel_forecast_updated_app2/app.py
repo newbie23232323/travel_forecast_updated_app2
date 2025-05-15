@@ -234,7 +234,7 @@ st.sidebar.write(pd.DataFrame({
 }))
 
 df = load_data()
-model, actual = train_model(df)
+model, actual = forecast(df)
 
 def_inflation = {
     'Airfare': airfare_factor,
