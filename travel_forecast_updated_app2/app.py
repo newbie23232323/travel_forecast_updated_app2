@@ -294,6 +294,7 @@ def parse_query(text):
 # Suggest Cost Saving Tips (Trend-Based)
 # ---------------------------
 def suggest_cost_saving_tips(df):
+    st.subheader("Suggested Ways to Reduce Travel Expenses")
     suggestions = []
     df['Quarter'] = df['Date'].dt.to_period('Q')
     grouped = df.groupby(['Quarter', 'Category']).agg({"Expense": "mean"}).reset_index()
@@ -305,7 +306,8 @@ def suggest_cost_saving_tips(df):
         else:
             suggestions.append(f"{category}: Stable trend. No immediate changes needed.")
 
-    return suggestions
+    for tip in suggestions:
+        st.markdown(f"- {tip}")
 
 # ---------------------------
 # Violation Detection Output
