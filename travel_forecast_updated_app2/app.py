@@ -70,6 +70,25 @@ def detect_violations(df):
     violations = df[df['Category'].isin(max_limits.keys()) & (df['Expense'] > df['Category'].map(max_limits))]
     return violations[['Employee', 'EmployeeNumber', 'Date', 'Category', 'Expense']]
 
+def run_numpy_linear_regression(df, category):
+    df = df[df['Category'] == category].copy()
+    df['Quarter'] = df['Date'].dt.to_period('Q').apply(lambda x: x.start_time.toordinal())
+    df = df.groupby('Quarter')['Expense'].mean().reset_index()
+    X = df['Quarter'].values.reshape(-1, 1)
+    y = df['Expense'].values
+
+    # Manual linear regression: y = mX + b
+    m, b = np.polyfit(X.flatten(), y, 1)
+    future_quarters = pd.date_range(start='2025-04-01', periods=8, freq='QS')
+    future_ordinals = np.array([d.toordinal() for d in future_quarters]).reshape(-1, 1)
+    predictions = m * future_ordinals.flatten() + b
+
+    forecast_df = pd.DataFrame({
+        'Quarter': future_quarters.to_period('Q').astype(str),
+        'Predicted Expense': predictions.round(2)
+    })
+    return forecast_df
+
 
 # ---------------------------
 # Suggest Cost Saving Tips (Trend-Based)
@@ -89,27 +108,6 @@ def suggest_cost_saving_tips(df):
 
     for tip in suggestions:
         st.markdown(f"- {tip}")
-
-# ---------------------------
-# Simple NumPy-based Linear Regression Forecast
-# ---------------------------
-def run_numpy_linear_regression(df, category):
-    df = df[df['Category'] == category].copy()
-    df['Quarter'] = df['Date'].dt.to_period('Q').apply(lambda x: x.start_time.toordinal())
-    df = df.groupby('Quarter')['Expense'].mean().reset_index()
-    X = df['Quarter'].values.reshape(-1, 1)
-    y = df['Expense'].values
-
-    m, b = np.polyfit(X.flatten(), y, 1)
-    future_quarters = pd.date_range(start='2025-04-01', periods=8, freq='QS')
-    future_ordinals = np.array([d.toordinal() for d in future_quarters]).reshape(-1, 1)
-    predictions = m * future_ordinals.flatten() + b
-
-    forecast_df = pd.DataFrame({
-        'Quarter': future_quarters.to_period('Q').astype(str),
-        'Predicted Expense': predictions.round(2)
-    })
-    return forecast_df
 
 # ---------------------------
 # Parse Natural Language Query
