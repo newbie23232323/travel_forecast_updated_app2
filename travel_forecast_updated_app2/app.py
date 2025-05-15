@@ -299,6 +299,12 @@ def generate_expense_summary(df):
     summary_csv = pivot.reset_index().to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", summary_csv, "trend_summary_report.csv", "text/csv")
 
+
+# ---------------------------
+# Enhanced Summary Reporting
+# ---------------------------
+generate_expense_summary(df)
+
 # ---------------------------
 # Violation Detection Output
 # ---------------------------
