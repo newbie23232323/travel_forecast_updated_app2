@@ -18,8 +18,11 @@ import re
 
 def load_data():
     np.random.seed(42)
-    employees = [f"Employee {i+1}" for i in range(50)]
-    quarters = pd.date_range(start='2022-01-01', end='2024-12-31', freq='QS')
+    employees = [f"Employee {i+1}" for i in range(100)]
+    employee_numbers = np.random.randint(1000000, 9999999, size=100)
+    employee_map = dict(zip(employees, employee_numbers))
+
+    quarters = pd.date_range(start='2020-01-01', end='2025-03-31', freq='QS')
     categories = ['Airfare', 'Lodging', 'Meals', 'Snacks', 'Ground Transport']
     expense_caps = {
         'Airfare': (300, 800),
@@ -31,17 +34,19 @@ def load_data():
 
     records = []
     for name in employees:
+        emp_number = employee_map[name]
         for date in quarters:
             records.extend([
-                {'Employee': name, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
+                {'Employee': name, 'EmployeeNumber': emp_number, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
                  'Expense': round(np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2), 2)}
                 for cat in categories
             ])
 
-    # Add 5 users that intentionally violate meal/snack limits
+    # Add 5 users that intentionally violate meal & snack limits
     
     violators = [f"Violation_User_{i+1}" for i in range(5)]
     for name in violators:
+        emp_number = np.random.randint(1000000, 9999999)
         for date in quarters:
             for cat in categories:
                 if cat in ['Meals', 'Snacks']:
@@ -50,6 +55,7 @@ def load_data():
                     over_limit = np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2)
                 records.append({
                     'Employee': name,
+                    'EmployeeNumber': emp_number,
                     'Date': date,
                     'Category': cat,
                     'Location': 'Washington DC',
@@ -67,7 +73,7 @@ def detect_violations(df):
         'Snacks': 30
     }
     violations = df[df['Category'].isin(max_limits.keys()) & (df['Expense'] > df['Category'].map(max_limits))]
-    return violations[['Employee', 'Date', 'Category', 'Expense']]
+    return violations[['Employee', 'EmployeeNumber', 'Date', 'Category', 'Expense']]
 
 # ---------------------------
 # Parse Natural Language Query
@@ -112,7 +118,7 @@ def train_model(df):
 # Forecast Future Quarters
 # ---------------------------
 def forecast_future(model, inflation_factors):
-    future_quarters = pd.period_range(start='2025Q1', end='2026Q4', freq='Q')
+    future_quarters = pd.period_range(start='2025Q2', end='2026Q4', freq='Q')
     categories = ['Airfare', 'Lodging', 'Meals', 'Snacks', 'Ground Transport']
     future_data = []
     for q in future_quarters:
@@ -269,9 +275,81 @@ if st.button("Apply Query") and query:
     st.success("Applied inflation changes from query.")
 
 # ---------------------------
+# Parse Natural Language Query
+# ---------------------------
+def parse_query(text):
+    adjustments = {
+        "airfare": 0,
+        "lodging": 0,
+        "meals": 0,
+        "snacks": 0,
+        "ground": 0
+    }
+    matches = re.findall(r'(airfare|lodging|meals|snacks|ground transport)[^\d]*(\d+)%?', text.lower())
+    for category, percent in matches:
+        key = category.replace(" ", "") if category != "ground transport" else "ground"
+        adjustments[key] = int(percent)
+    return adjustments
+
+# ---------------------------
+# Suggest Cost Saving Tips (Trend-Based)
+# ---------------------------
+def suggest_cost_saving_tips(df):
+    suggestions = []
+    df['Quarter'] = df['Date'].dt.to_period('Q')
+    grouped = df.groupby(['Quarter', 'Category']).agg({"Expense": "mean"}).reset_index()
+    trend_summary = grouped.groupby('Category').apply(lambda x: x.sort_values('Quarter')['Expense'].pct_change().mean()).sort_values(ascending=False)
+
+    for category, avg_trend in trend_summary.items():
+        if avg_trend > 0.05:
+            suggestions.append(f"{category}: Rising trend. Consider reviewing policies or negotiating rates.")
+        else:
+            suggestions.append(f"{category}: Stable trend. No immediate changes needed.")
+
+    return suggestions
+
+# ---------------------------
 # Violation Detection Output
 # ---------------------------
 st.subheader("Expense Violations Report")
 df = load_data()
 violations_df = detect_violations(df)
 st.dataframe(violations_df)
+
+# ---------------------------
+# Generate Summary Report with Anomalies and Filters
+# ---------------------------
+def generate_expense_summary(df):
+    df['Quarter'] = df['Date'].dt.to_period('Q')
+    selected_category = st.selectbox("Filter by Category:", options=["All"] + sorted(df['Category'].unique()))
+    selected_quarters = st.multiselect("Select Quarters:", options=sorted(df['Quarter'].unique().astype(str)))
+
+    filtered_df = df.copy()
+    if selected_category != "All":
+        filtered_df = filtered_df[filtered_df['Category'] == selected_category]
+    if selected_quarters:
+        filtered_df = filtered_df[filtered_df['Quarter'].astype(str).isin(selected_quarters)]
+
+    pivot = filtered_df.pivot_table(index='Quarter', columns='Category', values='Expense', aggfunc='mean').fillna(0)
+    st.subheader("Visual Expense Trend Analysis")
+    st.line_chart(pivot)
+
+    ### Anomaly detection: flag quarters with sudden >10% jump ###
+    st.subheader("Detected Anomalies")
+    anomalies = []
+    for cat in pivot.columns:
+        diffs = pivot[cat].pct_change()
+        for i, pct in enumerate(diffs):
+            if pct is not None and abs(pct) > 0.10:
+                anomalies.append(f"{cat} had a {'rise' if pct > 0 else 'drop'} of {pct:.1%} in {pivot.index[i]}")
+    for alert in anomalies:
+        st.warning(alert)
+
+    st.subheader("Download Summary Report (CSV)")
+    summary_csv = pivot.reset_index().to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Summary Report",
+        data=summary_csv,
+        file_name="expense_summary_report.csv",
+        mime="text/csv"
+    )
