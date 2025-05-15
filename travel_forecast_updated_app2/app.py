@@ -17,8 +17,11 @@ import re
 @st.cache_data()
 def load_data():
     np.random.seed(42)
-    employees = [f"Employee {i+1}" for i in range(50)]
-    quarters = pd.date_range(start='2022-01-01', end='2024-12-31', freq='QS')
+    employees = [f"Employee {i+1}" for i in range(100)]
+    employee_numbers = np.random.randint(1000000, 9999999, size=100)
+    employee_map = dict(zip(employees, employee_numbers))
+
+    quarters = pd.date_range(start='2021-01-01', end='2024-12-31', freq='QS')
     categories = ['Airfare', 'Lodging', 'Meals', 'Snacks', 'Ground Transport']
     expense_caps = {
         'Airfare': (300, 800),
@@ -30,16 +33,17 @@ def load_data():
 
     records = []
     for name in employees:
+        emp_number = employee_map[name]
         for date in quarters:
             records.extend([
-                {'Employee': name, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
+                {'Employee': name, 'EmployeeNumber': emp_number, 'Date': date, 'Category': cat, 'Location': 'Washington DC',
                  'Expense': round(np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2), 2)}
                 for cat in categories
             ])
 
-    # Add 5 users that intentionally violate meal/snack limits
     violators = [f"Violation_User_{i+1}" for i in range(5)]
     for name in violators:
+        emp_number = np.random.randint(1000000, 9999999)
         for date in quarters:
             for cat in categories:
                 if cat in ['Meals', 'Snacks']:
@@ -48,6 +52,7 @@ def load_data():
                     over_limit = np.random.uniform(*expense_caps[cat]) * (3 if cat in ['Lodging', 'Meals', 'Snacks'] else 2)
                 records.append({
                     'Employee': name,
+                    'EmployeeNumber': emp_number,
                     'Date': date,
                     'Category': cat,
                     'Location': 'Washington DC',
