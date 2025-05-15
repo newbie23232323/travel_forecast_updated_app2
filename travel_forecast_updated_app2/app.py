@@ -60,6 +60,7 @@ def load_data():
                 })
 
     return pd.DataFrame(records)
+
 # ---------------------------
 # Detect Violations
 # ---------------------------
@@ -308,4 +309,3 @@ st.dataframe(violations_df)
 # Export violation results
 violation_csv = violations_df.to_csv(index=False).encode('utf-8')
 st.download_button("Download Violations CSV", violation_csv, "violation_report.csv", "text/csv")
-
