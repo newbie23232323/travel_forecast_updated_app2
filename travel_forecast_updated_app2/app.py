@@ -8,10 +8,9 @@ import glob
 import re
 
 # ---------------------------
-# Simulate or Load Data
+# Simulate + Load Data
 # ---------------------------
 @st.cache_data
-
 def load_data():
     np.random.seed(42)
     employees = [f"Employee {i+1}" for i in range(100)]
@@ -89,26 +88,75 @@ def run_numpy_linear_regression(df, category):
     })
     return forecast_df
 
+# ---------------------------
+# Forecast Function
+# ---------------------------
+def run_numpy_linear_regression(df, category):
+    df = df[df['Category'] == category].copy()
+    df['Quarter'] = df['Date'].dt.to_period('Q').apply(lambda x: x.start_time.toordinal())
+    df = df.groupby('Quarter')['Expense'].mean().reset_index()
+    X = df['Quarter'].values.reshape(-1, 1)
+    y = df['Expense'].values
+    m, b = np.polyfit(X.flatten(), y, 1)
+    future_quarters = pd.date_range(start='2025-04-01', periods=8, freq='QS')
+    future_ordinals = np.array([d.toordinal() for d in future_quarters])
+    predictions = m * future_ordinals + b
+    return pd.DataFrame({'Quarter': future_quarters.to_period('Q').astype(str), 'Predicted Expense': predictions.round(2)})
 
 # ---------------------------
-# Suggest Cost Saving Tips (Trend-Based)
+# Cost Saving Tips
 # ---------------------------
 def suggest_cost_saving_tips(df):
     st.subheader("Suggested Ways to Reduce Travel Expenses")
-    suggestions = []
     df['Quarter'] = df['Date'].dt.to_period('Q')
-    grouped = df.groupby(['Quarter', 'Category']).agg({"Expense": "mean"}).reset_index()
-    trend_summary = grouped.groupby('Category').apply(lambda x: x.sort_values('Quarter')['Expense'].pct_change().mean()).sort_values(ascending=False)
-
-    for category, avg_trend in trend_summary.items():
-        if avg_trend > 0.05:
-            suggestions.append(f"{category}: Rising trend. Consider reviewing policies or negotiating rates.")
+    grouped = df.groupby(['Quarter', 'Category'])['Expense'].mean().reset_index()
+    trend_summary = grouped.groupby('Category').apply(lambda x: x.sort_values('Quarter')['Expense'].pct_change().mean())
+    for cat, trend in trend_summary.items():
+        if trend > 0.05:
+            st.markdown(f"- **{cat}**: Rising trend. Consider reviewing policies.")
         else:
-            suggestions.append(f"{category}: Stable trend. No immediate changes needed.")
+            st.markdown(f"- **{cat}**: Stable. No immediate action needed.")
 
-    for tip in suggestions:
-        st.markdown(f"- {tip}")
+# ---------------------------
+# Summary Reporting
+# ---------------------------
+def generate_expense_summary(df):
+    st.subheader("Visual Expense Trend Analysis")
+    df['Quarter'] = df['Date'].dt.to_period('Q')
+    pivot = df.pivot_table(index='Quarter', columns='Category', values='Expense', aggfunc='mean').fillna(0)
+    st.line_chart(pivot)
 
+    st.subheader("Detected Anomalies (>10%)")
+    for col in pivot.columns:
+        diffs = pivot[col].pct_change()
+        for i, pct in enumerate(diffs):
+            if pct is not None and abs(pct) > 0.10:
+                st.warning(f"{col} had a {'rise' if pct > 0 else 'drop'} of {pct:.1%} in {pivot.index[i]}")
+
+    st.subheader("Download Summary Report")
+    csv = pivot.reset_index().to_csv(index=False).encode('utf-8')
+    st.download_button("Download CSV", csv, "summary_report.csv", "text/csv")
+
+# ---------------------------
+# App Execution
+# ---------------------------
+def main():
+    st.title("Travel Expense Forecasting Tool")
+    df = load_data()
+
+    # Forecast
+    st.subheader("Forecast for a Selected Category")
+    category = st.selectbox("Select a category:", df['Category'].unique())
+    forecast_df = run_numpy_linear_regression(df, category)
+    st.dataframe(forecast_df)
+    st.line_chart(forecast_df.set_index('Quarter'))
+
+    # Tips + Summary
+    suggest_cost_saving_tips(df)
+    generate_expense_summary(df)
+
+if __name__ == '__main__':
+    main()
 # ---------------------------
 # Parse Natural Language Query
 # ---------------------------
