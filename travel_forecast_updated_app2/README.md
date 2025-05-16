@@ -1,4 +1,4 @@
-# School Travel Expense Forecasting Tool
+# Travel Expense Forecasting Tool
 
 This Streamlit app forecasts travel expenses by category using linear regression. Users can simulate inflation scenarios and apply custom or preset adjustments for the year 2026.
 
